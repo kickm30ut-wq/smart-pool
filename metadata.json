@@ -1,0 +1,6 @@
+{
+  "name": "Smart Pooling",
+  "description": "Enterprise ride coordination and fare sharing platform for coworkers travelling along common routes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
