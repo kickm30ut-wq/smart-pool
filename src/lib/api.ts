@@ -113,13 +113,14 @@ export const api = {
   },
 
   async createPool(data: {
-    tripId: string;
+    tripId?: string;
     userId: string;
     fromLocationId: string;
     toLocationId: string;
     travelDate: string;
     suggestedDepartureTime: string;
     pickupPoint?: string;
+    maxPassengers?: number;
     matchingTripIds?: string[];
   }): Promise<Pool> {
     const res = await fetch('/api/pools', {

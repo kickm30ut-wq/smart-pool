@@ -8,6 +8,8 @@ import { FindPoolView } from './components/trips/FindPoolView';
 import { MyTripsView } from './components/trips/MyTripsView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { PoolDetailsModal } from './components/pools/PoolDetailsModal';
+import { PoolsBrowseView } from './components/pools/PoolsBrowseView';
+import { CreatePoolModal } from './components/pools/CreatePoolModal';
 import { NotificationDrawer } from './components/notifications/NotificationDrawer';
 import { LoginModal } from './components/LoginModal';
 
@@ -24,6 +26,7 @@ function AppContent() {
 
   const [activePoolId, setActivePoolId] = useState<string | null>(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
+  const [isCreatePoolModalOpen, setIsCreatePoolModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
@@ -57,6 +60,7 @@ function AppContent() {
       <Navbar
         currentTab={currentTab}
         onNavigate={tab => setCurrentTab(tab)}
+        onOpenCreatePool={() => setIsCreatePoolModalOpen(true)}
         onOpenUserModal={() => setIsUserModalOpen(true)}
         onOpenNotifications={() => setIsNotifDrawerOpen(true)}
       />
@@ -81,6 +85,12 @@ function AppContent() {
             }
             onViewPoolDetails={handleOpenPoolDetails}
           />
+        ) : currentTab === 'browse-pools' ? (
+          <PoolsBrowseView
+            onOpenCreatePool={() => setIsCreatePoolModalOpen(true)}
+            onViewPoolDetails={handleOpenPoolDetails}
+            onSwitchToFindMatch={() => setCurrentTab('find-pool')}
+          />
         ) : currentTab === 'find-pool' ? (
           <FindPoolView
             initialFromId={findPoolPref.fromId}
@@ -92,6 +102,7 @@ function AppContent() {
               setCurrentTab('dashboard');
             }}
             onNavigateToTrips={() => setCurrentTab('my-trips')}
+            onOpenCreatePool={() => setIsCreatePoolModalOpen(true)}
           />
         ) : currentTab === 'my-trips' ? (
           <MyTripsView
@@ -103,11 +114,22 @@ function AppContent() {
             onFindPool={handleFindPoolFromDash}
             onViewPool={handleOpenPoolDetails}
             onViewMyTrips={() => setCurrentTab('my-trips')}
+            onOpenCreatePool={() => setIsCreatePoolModalOpen(true)}
+            onBrowsePools={() => setCurrentTab('browse-pools')}
           />
         )}
       </main>
 
       {/* Modals & Drawers */}
+      <CreatePoolModal
+        isOpen={isCreatePoolModalOpen}
+        onClose={() => setIsCreatePoolModalOpen(false)}
+        onPoolCreated={poolId => {
+          handleOpenPoolDetails(poolId);
+          setCurrentTab('browse-pools');
+        }}
+      />
+
       <PoolDetailsModal
         poolId={activePoolId}
         isOpen={isPoolModalOpen}

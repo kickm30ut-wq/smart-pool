@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Compass,
+  Plus,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -22,6 +23,7 @@ interface NavbarProps {
   onNavigate: (tab: string) => void;
   onOpenUserModal: () => void;
   onOpenNotifications: () => void;
+  onOpenCreatePool: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -29,6 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   onOpenUserModal,
   onOpenNotifications,
+  onOpenCreatePool,
 }) => {
   const { currentUser, logout, isAdmin, activeRoleMode, switchRoleMode } = useAuth();
   const [unreadNotifs, setUnreadNotifs] = useState(0);
@@ -93,6 +96,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     Dashboard
                   </button>
                   <button
+                    onClick={() => onNavigate('browse-pools')}
+                    className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
+                      currentTab === 'browse-pools'
+                        ? 'bg-emerald-50 text-emerald-800 font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
+                    }`}
+                  >
+                    <Car className="w-4 h-4 text-emerald-600" />
+                    Browse Pools
+                  </button>
+                  <button
                     onClick={() => onNavigate('find-pool')}
                     className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
                       currentTab === 'find-pool'
@@ -101,7 +115,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }`}
                   >
                     <Compass className="w-4 h-4 text-emerald-600" />
-                    Find Pool
+                    Match Commute
                   </button>
                   <button
                     onClick={() => onNavigate('my-trips')}
@@ -193,6 +207,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Admin
               </button>
             </div>
+
+            {/* Create Pool Button (For Employees) */}
+            {activeRoleMode === 'EMPLOYEE' && (
+              <button
+                onClick={onOpenCreatePool}
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Create Pool</span>
+              </button>
+            )}
 
             {/* Notification Bell */}
             <button
@@ -340,12 +365,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
               <button
                 onClick={() => {
+                  onNavigate('browse-pools');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+              >
+                <Car className="w-4 h-4 text-emerald-600" />
+                Browse Pools
+              </button>
+              <button
+                onClick={() => {
                   onNavigate('find-pool');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-2"
               >
-                Find Pool
+                <Compass className="w-4 h-4 text-emerald-600" />
+                Match Commute
               </button>
               <button
                 onClick={() => {
@@ -355,6 +391,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100"
               >
                 My Trips
+              </button>
+              <button
+                onClick={() => {
+                  onOpenCreatePool();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 flex items-center gap-2 mt-2 shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                + Create New Pool
               </button>
             </>
           ) : (

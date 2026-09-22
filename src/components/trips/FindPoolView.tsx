@@ -30,6 +30,7 @@ interface FindPoolViewProps {
   initialTime?: string;
   onPoolJoined: (poolId: string) => void;
   onNavigateToTrips: () => void;
+  onOpenCreatePool?: () => void;
 }
 
 export const FindPoolView: React.FC<FindPoolViewProps> = ({
@@ -39,6 +40,7 @@ export const FindPoolView: React.FC<FindPoolViewProps> = ({
   initialTime,
   onPoolJoined,
   onNavigateToTrips,
+  onOpenCreatePool,
 }) => {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
@@ -195,16 +197,29 @@ export const FindPoolView: React.FC<FindPoolViewProps> = ({
       {/* Search Formulation Card (Shown if not yet searched, or can be toggled) */}
       {!hasSearched ? (
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-800 to-teal-800 p-6 text-white">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-200 flex items-center gap-1.5">
-                <Car className="w-4 h-4" /> Ride Coordination
-              </span>
+          <div className="bg-gradient-to-r from-emerald-800 to-teal-800 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-200 flex items-center gap-1.5">
+                  <Car className="w-4 h-4" /> Ride Coordination
+                </span>
+              </div>
+              <h2 className="text-2xl font-extrabold tracking-tight">Where are you heading?</h2>
+              <p className="text-xs sm:text-sm text-emerald-100 mt-1 max-w-xl">
+                Post your planned commute and discover colleagues travelling along the same route around the same time.
+              </p>
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight">Where are you heading?</h2>
-            <p className="text-xs sm:text-sm text-emerald-100 mt-1 max-w-xl">
-              Post your planned commute and discover colleagues travelling along the same route around the same time.
-            </p>
+
+            {onOpenCreatePool && (
+              <button
+                type="button"
+                onClick={onOpenCreatePool}
+                className="self-start sm:self-center px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 shrink-0"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Create Pool Instead</span>
+              </button>
+            )}
           </div>
 
           <form onSubmit={handleFindPool} className="p-6 sm:p-8 space-y-6">
@@ -624,6 +639,16 @@ export const FindPoolView: React.FC<FindPoolViewProps> = ({
               </p>
 
               <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                {onOpenCreatePool && (
+                  <button
+                    onClick={onOpenCreatePool}
+                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Create Pool as Host</span>
+                  </button>
+                )}
+
                 <button
                   onClick={handleResetSearch}
                   className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
@@ -633,7 +658,7 @@ export const FindPoolView: React.FC<FindPoolViewProps> = ({
 
                 <button
                   onClick={onNavigateToTrips}
-                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-xs"
+                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
                 >
                   View My Trips
                 </button>

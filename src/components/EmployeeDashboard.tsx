@@ -17,18 +17,23 @@ import {
   ChevronRight,
   ShieldCheck,
   Compass,
+  Plus,
 } from 'lucide-react';
 
 interface EmployeeDashboardProps {
   onFindPool: (pref?: { fromId?: string; toId?: string; date?: string; time?: string }) => void;
   onViewPool: (poolId: string) => void;
   onViewMyTrips: () => void;
+  onOpenCreatePool: () => void;
+  onBrowsePools: () => void;
 }
 
 export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
   onFindPool,
   onViewPool,
   onViewMyTrips,
+  onOpenCreatePool,
+  onBrowsePools,
 }) => {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
@@ -40,6 +45,7 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
   const [departureTime, setDepartureTime] = useState<string>('18:00');
 
   const [upcomingPool, setUpcomingPool] = useState<Pool | null>(null);
+  const [openCoworkerPools, setOpenCoworkerPools] = useState<Pool[]>([]);
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,9 +62,10 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
       if (!currentUser) return;
       try {
         setLoading(true);
-        const [locs, pools, trips] = await Promise.all([
+        const [locs, myPools, allPools, trips] = await Promise.all([
           api.getLocations(true),
           api.getPools({ userId: currentUser._id }),
+          api.getPools(),
           api.getMyTrips(currentUser._id),
         ]);
 
@@ -72,9 +79,15 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
           setToLocationId(tvc._id);
         }
 
-        // Find active upcoming pool
-        const active = pools.find(p => p.status === 'OPEN' || p.status === 'CONFIRMED' || p.status === 'FULL');
+        // Find active upcoming pool for this user
+        const active = myPools.find(p => p.status === 'OPEN' || p.status === 'CONFIRMED' || p.status === 'FULL');
         setUpcomingPool(active || null);
+
+        // Find other open coworker pools that user hasn't joined yet
+        const openOthers = allPools.filter(
+          p => p.status === 'OPEN' && !p.memberIds.includes(currentUser._id)
+        );
+        setOpenCoworkerPools(openOthers.slice(0, 3));
 
         // Recent trips (limit to 3)
         setRecentTrips(trips.slice(0, 3));
@@ -113,8 +126,22 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={onOpenCreatePool}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Create Pool</span>
+          </button>
+          <button
+            onClick={onBrowsePools}
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
+          >
+            <Car className="w-4 h-4 text-emerald-600" />
+            <span>Browse Pools</span>
+          </button>
+          <div className="hidden lg:flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs font-semibold">
             <TrendingDown className="w-4 h-4 text-emerald-600" />
             <span>Avg. ₹120 saved per shared trip</span>
           </div>
@@ -226,11 +253,69 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
+
+            <div className="pt-2 flex items-center justify-between text-xs bg-slate-50 -mx-6 -mb-6 px-6 py-3 border-t border-slate-200">
+              <span className="text-slate-600 font-medium">Want to host and open seats for coworkers directly?</span>
+              <button
+                type="button"
+                onClick={onOpenCreatePool}
+                className="text-emerald-700 font-bold hover:underline flex items-center gap-1"
+              >
+                <span>+ Create a Pool</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </form>
         </div>
 
         {/* Right Column: Upcoming Ride & Smart Suggestions (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
+          {/* Open Coworker Pools Widget */}
+          {openCoworkerPools.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                  <Car className="w-4 h-4 text-emerald-600" /> Open Coworker Pools
+                </span>
+                <button
+                  onClick={onBrowsePools}
+                  className="text-xs font-bold text-emerald-700 hover:underline"
+                >
+                  View All →
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {openCoworkerPools.map(pool => {
+                  const seatsLeft = pool.maxPassengers - pool.memberIds.length;
+                  return (
+                    <div
+                      key={pool._id}
+                      className="p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/40 border border-slate-200 transition-colors flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 truncate">
+                          {pool.fromLocation?.shortName || 'UST'} → {pool.toLocation?.shortName || 'Central'}
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <span>{formatTime12Hour(pool.suggestedDepartureTime)}</span>
+                          <span>•</span>
+                          <span className="font-semibold text-emerald-700">{seatsLeft} seat{seatsLeft > 1 ? 's' : ''} left</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => onViewPool(pool._id)}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition-colors shrink-0 shadow-xs"
+                      >
+                        Join / View
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {/* Upcoming Ride Card (Requirement 7) */}
           {upcomingPool ? (
             <div className="bg-white rounded-2xl p-6 border-2 border-emerald-500/80 shadow-md">
