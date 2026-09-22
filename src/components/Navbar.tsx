@@ -215,7 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Create Pool</span>
+                <span>Create Pool</span>
               </button>
             )}
 
@@ -400,7 +400,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 flex items-center gap-2 mt-2 shadow-xs"
               >
                 <Plus className="w-4 h-4" />
-                + Create New Pool
+                <span>Create New Pool</span>
               </button>
             </>
           ) : (

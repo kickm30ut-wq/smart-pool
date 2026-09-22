@@ -128,7 +128,7 @@ export const PoolsBrowseView: React.FC<PoolsBrowseViewProps> = ({
             className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-900/30 transition-all flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4 text-slate-950" />
-            <span>+ Create Pool</span>
+            <span>Create Pool</span>
           </button>
         </div>
       </div>

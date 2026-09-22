@@ -132,7 +132,7 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Create Pool</span>
+            <span>Create Pool</span>
           </button>
           <button
             onClick={onBrowsePools}
@@ -261,7 +261,7 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({
                 onClick={onOpenCreatePool}
                 className="text-emerald-700 font-bold hover:underline flex items-center gap-1"
               >
-                <span>+ Create a Pool</span>
+                <span>Create a Pool</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>

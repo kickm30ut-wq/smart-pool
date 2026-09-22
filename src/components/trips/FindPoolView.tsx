@@ -217,7 +217,7 @@ export const FindPoolView: React.FC<FindPoolViewProps> = ({
                 className="self-start sm:self-center px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 shrink-0"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>+ Create Pool Instead</span>
+                <span>Create Pool Instead</span>
               </button>
             )}
           </div>
