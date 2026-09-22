@@ -1,6 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { User, Location, Trip, Pool, Notification, AnalyticsData } from '../types';
+import {
+  connectToMongoDB,
+  isMongoDBConnected,
+  loadDataFromMongoDB,
+  saveAllToMongoDB,
+  upsertMongoDoc,
+  deleteMongoDoc,
+} from './mongodb';
 
 export interface DatabaseSchema {
   users: User[];
@@ -15,6 +23,7 @@ const DB_FILE = path.join(DATA_DIR, 'smart_pooling_db.json');
 
 // In-memory cache for fast read/writes
 let inMemoryData: DatabaseSchema | null = null;
+let isInitializing: boolean = false;
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -28,6 +37,57 @@ function ensureDataDir() {
 
 export function generateId(prefix: string = 'id'): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+}
+
+export async function initDatabase(forceSeed: boolean = false): Promise<DatabaseSchema> {
+  if (inMemoryData && !forceSeed) {
+    return inMemoryData;
+  }
+
+  // 1. If MONGODB_URI is provided, attempt MongoDB connection
+  if (process.env.MONGODB_URI) {
+    try {
+      const conn = await connectToMongoDB();
+      if (conn) {
+        const mongoData = await loadDataFromMongoDB();
+        if (
+          !forceSeed &&
+          mongoData &&
+          mongoData.users.length > 0 &&
+          mongoData.locations.length > 0
+        ) {
+          inMemoryData = mongoData;
+          console.log(`✅ Loaded ${mongoData.users.length} users and ${mongoData.locations.length} locations from MongoDB Atlas`);
+          return inMemoryData;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not initialize from MongoDB Atlas, falling back to local storage:', err);
+    }
+  }
+
+  // 2. Local fallback
+  ensureDataDir();
+
+  if (!forceSeed && fs.existsSync(DB_FILE)) {
+    try {
+      const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      inMemoryData = JSON.parse(raw);
+      return inMemoryData!;
+    } catch (e) {
+      console.warn('Failed to parse existing DB file, re-initializing', e);
+    }
+  }
+
+  inMemoryData = {
+    users: [],
+    locations: [],
+    trips: [],
+    pools: [],
+    notifications: [],
+  };
+
+  return inMemoryData;
 }
 
 export function getDb(): DatabaseSchema {
@@ -65,7 +125,14 @@ export function saveDb(): void {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(inMemoryData, null, 2), 'utf-8');
   } catch (e) {
-    console.warn('Could not persist database to disk, maintaining in memory', e);
+    // In serverless environments, file writing may fail gracefully
+  }
+
+  // Also sync to MongoDB if connected
+  if (isMongoDBConnected()) {
+    saveAllToMongoDB(inMemoryData).catch(err => {
+      console.warn('Background MongoDB sync notice:', err.message);
+    });
   }
 }
 
@@ -103,6 +170,7 @@ export const UserModel = {
     };
     db.users.push(newUser);
     saveDb();
+    upsertMongoDoc('users', newUser);
     return newUser;
   },
 
@@ -116,6 +184,7 @@ export const UserModel = {
       updatedAt: new Date().toISOString(),
     };
     saveDb();
+    upsertMongoDoc('users', db.users[idx]);
     return db.users[idx];
   },
 };
@@ -149,6 +218,7 @@ export const LocationModel = {
     };
     db.locations.push(newLoc);
     saveDb();
+    upsertMongoDoc('locations', newLoc);
     return newLoc;
   },
 
@@ -162,6 +232,7 @@ export const LocationModel = {
       updatedAt: new Date().toISOString(),
     };
     saveDb();
+    upsertMongoDoc('locations', db.locations[idx]);
     return db.locations[idx];
   },
 };
@@ -200,6 +271,7 @@ export const TripModel = {
     };
     db.trips.push(newTrip);
     saveDb();
+    upsertMongoDoc('trips', newTrip);
     return populateTrip(newTrip);
   },
 
@@ -213,6 +285,7 @@ export const TripModel = {
       updatedAt: new Date().toISOString(),
     };
     saveDb();
+    upsertMongoDoc('trips', db.trips[idx]);
     return populateTrip(db.trips[idx]);
   },
 };
@@ -250,6 +323,7 @@ export const PoolModel = {
     };
     db.pools.push(newPool);
     saveDb();
+    upsertMongoDoc('pools', newPool);
     return populatePool(newPool);
   },
 
@@ -263,6 +337,7 @@ export const PoolModel = {
       updatedAt: new Date().toISOString(),
     };
     saveDb();
+    upsertMongoDoc('pools', db.pools[idx]);
     return populatePool(db.pools[idx]);
   },
 };
@@ -293,6 +368,7 @@ export const NotificationModel = {
     };
     db.notifications.push(newNotif);
     saveDb();
+    upsertMongoDoc('notifications', newNotif);
     return newNotif;
   },
 
@@ -302,6 +378,7 @@ export const NotificationModel = {
     if (notif) {
       notif.read = true;
       saveDb();
+      upsertMongoDoc('notifications', notif);
       return true;
     }
     return false;
@@ -313,6 +390,7 @@ export const NotificationModel = {
     db.notifications.forEach(n => {
       if (n.userId === userId && !n.read) {
         n.read = true;
+        upsertMongoDoc('notifications', n);
         count++;
       }
     });
