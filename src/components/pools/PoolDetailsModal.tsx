@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { formatTime12Hour } from '../../lib/matching';
+import { getEstimatedFare, calculateFarePerPerson } from '../../lib/fare';
 import {
   Car,
   MapPin,
@@ -64,8 +65,11 @@ export const PoolDetailsModal: React.FC<PoolDetailsModalProps> = ({
   const isCreator = currentUser ? pool?.createdBy === currentUser._id : false;
   const memberCount = pool?.memberIds.length || 1;
   const maxPassengers = pool?.maxPassengers || 4;
-  const estimatedFare = pool?.estimatedFare || 180;
-  const farePerPerson = Math.round(estimatedFare / memberCount);
+  const routeFare = pool?.fromLocation && pool?.toLocation
+    ? getEstimatedFare(pool.fromLocation.name, pool.toLocation.name)
+    : 150;
+  const estimatedFare = pool?.estimatedFare || routeFare;
+  const farePerPerson = calculateFarePerPerson(estimatedFare, memberCount);
   const savingPerPerson = Math.max(0, estimatedFare - farePerPerson);
 
   const handleLeavePool = async () => {

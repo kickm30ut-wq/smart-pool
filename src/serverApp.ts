@@ -305,7 +305,10 @@ app.post('/api/pools', (req: Request, res: Response) => {
 
   const fromLoc = LocationModel.findById(fromLocationId);
   const toLoc = LocationModel.findById(toLocationId);
-  const estimatedFare = getEstimatedFare(fromLoc?.name || '', toLoc?.name || '');
+  const customFare = Number(req.body.estimatedFare);
+  const estimatedFare = (!isNaN(customFare) && customFare > 0)
+    ? customFare
+    : getEstimatedFare(fromLoc?.name || '', toLoc?.name || '');
 
   // If no tripId provided, auto-create a trip for the pool host/creator
   let activeTripId = tripId;

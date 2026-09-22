@@ -93,7 +93,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
 
   const fromLocation = locations.find(l => l._id === fromLocationId);
   const toLocation = locations.find(l => l._id === toLocationId);
-  const estimatedFare = fromLocation && toLocation ? getEstimatedFare(fromLocation.name, toLocation.name) : 180;
+  const estimatedFare = fromLocation && toLocation ? getEstimatedFare(fromLocation.name, toLocation.name) : 150;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +122,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
         suggestedDepartureTime: departureTime,
         pickupPoint: pickupPoint.trim() || `${fromLocation?.shortName || 'Campus'} Pickup Point`,
         maxPassengers,
+        estimatedFare,
       });
 
       showToast('Ride pool created successfully! Coworkers can now discover and join.', 'success');

@@ -405,12 +405,23 @@ function populateTrip(trip: Trip): Trip {
   const user = db.users.find(u => u._id === trip.userId);
   const fromLocation = db.locations.find(l => l._id === trip.fromLocationId);
   const toLocation = db.locations.find(l => l._id === trip.toLocationId);
+  const rawPool = trip.poolId ? db.pools.find(p => p._id === trip.poolId) : undefined;
+  const pool: Pool | undefined = rawPool
+    ? {
+        ...rawPool,
+        fromLocation: db.locations.find(l => l._id === rawPool.fromLocationId),
+        toLocation: db.locations.find(l => l._id === rawPool.toLocationId),
+        members: rawPool.memberIds.map(id => db.users.find(u => u._id === id)).filter(Boolean) as User[],
+        creator: db.users.find(u => u._id === rawPool.createdBy),
+      }
+    : undefined;
 
   return {
     ...trip,
     user,
     fromLocation,
     toLocation,
+    pool,
   };
 }
 

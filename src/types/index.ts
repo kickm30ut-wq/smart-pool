@@ -59,6 +59,7 @@ export interface Trip {
   user?: User;
   fromLocation?: Location;
   toLocation?: Location;
+  pool?: Pool;
 }
 
 export type PoolStatus = 'OPEN' | 'FULL' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';

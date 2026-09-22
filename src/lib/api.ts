@@ -122,6 +122,7 @@ export const api = {
     pickupPoint?: string;
     maxPassengers?: number;
     matchingTripIds?: string[];
+    estimatedFare?: number;
   }): Promise<Pool> {
     const res = await fetch('/api/pools', {
       method: 'POST',

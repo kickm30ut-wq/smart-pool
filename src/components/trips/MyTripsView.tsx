@@ -3,6 +3,7 @@ import { Trip, Pool } from '../../types';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatTime12Hour } from '../../lib/matching';
+import { getEstimatedFare, calculateFarePerPerson } from '../../lib/fare';
 import {
   Car,
   Calendar,
@@ -32,7 +33,7 @@ export const MyTripsView: React.FC<MyTripsViewProps> = ({ onViewPool, onFindPool
       setLoading(true);
       const [tData, pData] = await Promise.all([
         api.getMyTrips(currentUser._id),
-        api.getPools({ userId: currentUser._id }),
+        api.getPools(),
       ]);
       setTrips(tData);
       setPools(pData);
@@ -132,10 +133,15 @@ export const MyTripsView: React.FC<MyTripsViewProps> = ({ onViewPool, onFindPool
           </div>
         ) : (
           filteredTrips.map(trip => {
-            const pool = trip.poolId ? pools.find(p => p._id === trip.poolId) : null;
-            const riderCount = pool ? pool.memberIds.length : 1;
-            const estimatedFare = pool ? pool.estimatedFare : 180;
-            const fareShare = Math.round(estimatedFare / riderCount);
+            const pool = trip.pool || (trip.poolId ? pools.find(p => p._id === trip.poolId) : null);
+            const routeFare = getEstimatedFare(
+              trip.fromLocation?.name || pool?.fromLocation?.name || '',
+              trip.toLocation?.name || pool?.toLocation?.name || ''
+            );
+            const estimatedFare = pool?.estimatedFare || routeFare;
+            const riderCount = pool?.memberIds?.length || pool?.members?.length || 1;
+            const fareShare = calculateFarePerPerson(estimatedFare, riderCount);
+            const savings = Math.max(0, estimatedFare - fareShare);
 
             return (
               <div
@@ -193,9 +199,9 @@ export const MyTripsView: React.FC<MyTripsViewProps> = ({ onViewPool, onFindPool
                         ? `₹${fareShare}`
                         : `~₹${estimatedFare}`}
                     </div>
-                    {riderCount > 1 && (
+                    {riderCount > 1 && savings > 0 && (
                       <div className="text-[10px] font-bold text-emerald-700">
-                        ₹{estimatedFare - fareShare} saved
+                        ₹{savings} saved
                       </div>
                     )}
                   </div>

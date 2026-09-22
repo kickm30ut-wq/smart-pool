@@ -528,11 +528,20 @@ function populateTrip(trip) {
   const user = db.users.find((u) => u._id === trip.userId);
   const fromLocation = db.locations.find((l) => l._id === trip.fromLocationId);
   const toLocation = db.locations.find((l) => l._id === trip.toLocationId);
+  const rawPool = trip.poolId ? db.pools.find((p) => p._id === trip.poolId) : void 0;
+  const pool = rawPool ? {
+    ...rawPool,
+    fromLocation: db.locations.find((l) => l._id === rawPool.fromLocationId),
+    toLocation: db.locations.find((l) => l._id === rawPool.toLocationId),
+    members: rawPool.memberIds.map((id) => db.users.find((u) => u._id === id)).filter(Boolean),
+    creator: db.users.find((u) => u._id === rawPool.createdBy)
+  } : void 0;
   return {
     ...trip,
     user,
     fromLocation,
-    toLocation
+    toLocation,
+    pool
   };
 }
 function populatePool(pool) {
@@ -1569,19 +1578,34 @@ app.post("/api/pools", (req, res) => {
     travelDate,
     suggestedDepartureTime,
     pickupPoint,
+    maxPassengers = 4,
     matchingTripIds = []
   } = req.body;
-  if (!tripId || !userId || !fromLocationId || !toLocationId || !travelDate) {
-    return res.status(400).json({ error: "Missing required pool creation fields" });
+  if (!userId || !fromLocationId || !toLocationId || !travelDate) {
+    return res.status(400).json({ error: "Missing required pool creation fields (userId, from, to, date)" });
   }
   const fromLoc = LocationModel.findById(fromLocationId);
   const toLoc = LocationModel.findById(toLocationId);
-  const estimatedFare = getEstimatedFare(fromLoc?.name || "", toLoc?.name || "");
+  const customFare = Number(req.body.estimatedFare);
+  const estimatedFare = !isNaN(customFare) && customFare > 0 ? customFare : getEstimatedFare(fromLoc?.name || "", toLoc?.name || "");
+  let activeTripId = tripId;
+  if (!activeTripId) {
+    const creatorTrip = TripModel.create({
+      userId,
+      fromLocationId,
+      toLocationId,
+      travelDate,
+      departureTime: suggestedDepartureTime || "18:00",
+      flexibleMinutes: 15,
+      status: "POOLED"
+    });
+    activeTripId = creatorTrip._id;
+  }
   const memberIds = [userId];
-  const tripIds = [tripId];
+  const tripIds = [activeTripId];
   for (const mTripId of matchingTripIds) {
     const mTrip = TripModel.findById(mTripId);
-    if (mTrip && !memberIds.includes(mTrip.userId) && memberIds.length < 4) {
+    if (mTrip && !memberIds.includes(mTrip.userId) && memberIds.length < maxPassengers) {
       memberIds.push(mTrip.userId);
       tripIds.push(mTrip._id);
     }
@@ -1594,9 +1618,9 @@ app.post("/api/pools", (req, res) => {
     pickupPoint: pickupPoint || `${fromLoc?.shortName || "Main Campus"} Pickup Point`,
     memberIds,
     tripIds,
-    maxPassengers: 4,
+    maxPassengers: Number(maxPassengers) || 4,
     estimatedFare,
-    status: memberIds.length >= 4 ? "FULL" : "OPEN",
+    status: memberIds.length >= (Number(maxPassengers) || 4) ? "FULL" : "OPEN",
     createdBy: userId
   });
   tripIds.forEach((tId) => {
@@ -1628,21 +1652,44 @@ app.post("/api/pools/:id/join", (req, res) => {
     return res.status(404).json({ error: "Pool not found" });
   }
   if (pool.status === "FULL" || pool.memberIds.length >= pool.maxPassengers) {
-    return res.status(400).json({ error: "This pool is already at full capacity (4 riders)" });
+    return res.status(400).json({ error: `This pool is already at full capacity (${pool.maxPassengers} riders)` });
   }
   if (pool.memberIds.includes(userId)) {
     return res.status(400).json({ error: "You are already a member of this pool" });
   }
+  let activeTripId = tripId;
+  if (!activeTripId) {
+    const existingTrip = TripModel.find({
+      userId,
+      fromLocationId: pool.fromLocationId,
+      toLocationId: pool.toLocationId,
+      travelDate: pool.travelDate
+    }).find((t) => t.status === "SEARCHING");
+    if (existingTrip) {
+      activeTripId = existingTrip._id;
+    } else {
+      const newTrip = TripModel.create({
+        userId,
+        fromLocationId: pool.fromLocationId,
+        toLocationId: pool.toLocationId,
+        travelDate: pool.travelDate,
+        departureTime: pool.suggestedDepartureTime,
+        flexibleMinutes: 15,
+        status: "POOLED"
+      });
+      activeTripId = newTrip._id;
+    }
+  }
   const updatedMemberIds = [...pool.memberIds, userId];
-  const updatedTripIds = tripId && !pool.tripIds.includes(tripId) ? [...pool.tripIds, tripId] : pool.tripIds;
+  const updatedTripIds = activeTripId && !pool.tripIds.includes(activeTripId) ? [...pool.tripIds, activeTripId] : pool.tripIds;
   const newStatus = updatedMemberIds.length >= pool.maxPassengers ? "FULL" : "OPEN";
   const updatedPool = PoolModel.updateById(id, {
     memberIds: updatedMemberIds,
     tripIds: updatedTripIds,
     status: newStatus
   });
-  if (tripId) {
-    TripModel.updateById(tripId, { poolId: id, status: "POOLED" });
+  if (activeTripId) {
+    TripModel.updateById(activeTripId, { poolId: id, status: "POOLED" });
   }
   const joiningUser = UserModel.findById(userId);
   const toLoc = LocationModel.findById(pool.toLocationId);
@@ -1793,12 +1840,12 @@ app.post("/api/ai/demand-insight", async (req, res) => {
     });
   }
 });
-
-// api/index.ts
 async function handler(req, res) {
   await ensureServerInitialized();
   return app(req, res);
 }
 export {
-  handler as default
+  app,
+  handler as default,
+  ensureServerInitialized
 };
